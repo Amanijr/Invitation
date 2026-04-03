@@ -16,9 +16,10 @@ import java.util.UUID;
 @Table(name = "events")
 
 
+@io.swagger.v3.oas.annotations.media.Schema(description = "Event persistence entity")
 public class Event {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
@@ -31,6 +32,10 @@ public class Event {
 
     @Column(nullable = false)
     private LocalDateTime eventDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_type", nullable = false)
+    private EventType eventType;
 
     private String status;
 
