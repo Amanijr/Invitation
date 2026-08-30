@@ -2,6 +2,8 @@ package com.InvitationSystem.InvitationSystem.Dto.invitationsDto;
 
 import com.InvitationSystem.InvitationSystem.entity.InvitationStatus;
 import com.InvitationSystem.InvitationSystem.entity.DeliveryStatus;
+import com.InvitationSystem.InvitationSystem.entity.AdmissionType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,12 +20,17 @@ public class InvitationResponseDto {
     private UUID id;
     private UUID eventId;
     private UUID templateId;
+    private Integer templateVersion;
     private UUID guestId;
     private String recipientPhone;
     private String recipientEmail;
+    private String guestName;
     private String uniqueToken;
     private String qrCodeUrl;
     private String qrCode;
+    private String cardReference;
+    private String cardUrl;
+    @JsonProperty("used")
     private boolean isUsed;
     private boolean scanned;
     private InvitationStatus status;
@@ -32,4 +39,10 @@ public class InvitationResponseDto {
     private LocalDateTime expiryDate;
     private LocalDateTime expiresAt;
     private LocalDateTime scannedAt;
+    private LocalDateTime usedAt;
+    private AdmissionType admissionType;
+    private Integer admissionLimit;
+    private Integer usedAdmissions;
+    private Integer remainingAdmissions;
+    private boolean revoked;
 }

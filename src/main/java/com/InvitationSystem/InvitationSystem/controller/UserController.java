@@ -1,12 +1,16 @@
 package com.InvitationSystem.InvitationSystem.controller;
 
+import com.InvitationSystem.InvitationSystem.Dto.UserDto.AuthResponseDto;
+import com.InvitationSystem.InvitationSystem.Dto.UserDto.ProfileUpdateRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserResponseDto;
+import com.InvitationSystem.InvitationSystem.security.JwtGenerator;
 import com.InvitationSystem.InvitationSystem.service.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -15,12 +19,36 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
-@CrossOrigin(origins = "*")
 @Tag(name = "Users", description = "User management endpoints")
 public class  UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private JwtGenerator jwtGenerator;
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDto> getMe(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return userService.getUserByEmail(authentication.getName())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<AuthResponseDto> updateMe(
+            @RequestBody ProfileUpdateRequestDto request,
+            Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        UserResponseDto user = userService.updateProfile(authentication.getName(), request);
+        String token = jwtGenerator.generateToken(user.getEmail(), user.getUserId(), user.getRole());
+        return ResponseEntity.ok(AuthResponseDto.from(token, user));
+    }
 
 //    @PostMapping("/register")
 //    public ResponseEntity<UserResponseDto> registerUser(@RequestBody UserRequestDto request) {

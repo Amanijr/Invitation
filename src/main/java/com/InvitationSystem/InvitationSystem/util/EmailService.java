@@ -2,6 +2,7 @@ package com.InvitationSystem.InvitationSystem.util;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Base64;
 
 @Service
@@ -18,11 +20,14 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.from:noreply@invitationsystem.com}")
+    @Value("${MAIL_FROM:${spring.mail.from:noreply@invitationsystem.com}}")
     private String fromEmail;
 
-    @Value("${app.base-url:http://localhost:8080}")
-    private String baseUrl;
+    @Value("${MAIL_FROM_NAME:${mail.from.name:InviteFlow}}")
+    private String fromName;
+
+    @Value("${app.public-url:http://localhost:5173}")
+    private String publicUrl;
 
     /**
      * Send simple text email
@@ -44,18 +49,56 @@ public class EmailService {
      * Send HTML email
      */
     public void sendHtmlEmail(String to, String subject, String htmlBody) {
+        sendHtmlEmail(to, subject, null, htmlBody);
+    }
+
+    public void sendHtmlEmail(String to, String subject, String plainText, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
-            helper.setFrom(fromEmail);
+            applyIdentity(helper);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-            
+            setBodies(helper, plainText, htmlBody);
             mailSender.send(message);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             throw new RuntimeException("Failed to send HTML email: " + e.getMessage(), e);
+        }
+    }
+
+    public void sendHtmlEmailWithCard(String to, String subject, String htmlBody, byte[] cardBytes, String fileName) {
+        sendHtmlEmailWithCard(to, subject, null, htmlBody, cardBytes, fileName);
+    }
+
+    public void sendHtmlEmailWithCard(String to, String subject, String plainText, String htmlBody,
+                                      byte[] cardBytes, String fileName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            applyIdentity(helper);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            setBodies(helper, plainText, htmlBody);
+
+            if (cardBytes != null && cardBytes.length > 0) {
+                String name = (fileName == null || fileName.isBlank()) ? "invitation-card.png" : fileName;
+                helper.addInline("invitation-card", new ByteArrayResource(cardBytes) {
+                    @Override
+                    public String getFilename() {
+                        return name;
+                    }
+                }, "image/png");
+                helper.addAttachment(name, new ByteArrayResource(cardBytes) {
+                    @Override
+                    public String getFilename() {
+                        return name;
+                    }
+                }, "image/png");
+            }
+
+            mailSender.send(message);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            throw new RuntimeException("Failed to send invitation card email: " + e.getMessage(), e);
         }
     }
 
@@ -64,11 +107,10 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail);
+            applyIdentity(helper);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(htmlBody, true);
+            setBodies(helper, null, htmlBody);
 
             if (base64Pdf != null && !base64Pdf.isBlank()) {
                 byte[] pdfBytes = Base64.getDecoder().decode(base64Pdf);
@@ -83,7 +125,7 @@ public class EmailService {
             }
 
             mailSender.send(message);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             throw new RuntimeException("Failed to send HTML email with attachment: " + e.getMessage(), e);
         }
     }
@@ -92,7 +134,7 @@ public class EmailService {
      * Send invitation email to guest
      */
     public void sendInvitationEmail(String guestEmail, String guestName, String eventName, String invitationToken) {
-        String invitationUrl = baseUrl + "/api/v1/invitations/token/" + invitationToken;
+        String invitationUrl = GuestCardLinks.cardViewUrl(publicUrl, invitationToken);
         
         String htmlBody = buildInvitationEmailHtml(guestName, eventName, invitationUrl);
         sendHtmlEmail(guestEmail, "You're Invited: " + eventName, htmlBody);
@@ -199,5 +241,19 @@ public class EmailService {
                 "<p>Best regards,<br>Event Team</p>" +
                 "</body>" +
                 "</html>";
+    }
+
+    private void applyIdentity(MimeMessageHelper helper) throws MessagingException, UnsupportedEncodingException {
+        String name = (fromName == null || fromName.isBlank()) ? "InviteFlow" : fromName.trim();
+        helper.setFrom(fromEmail, name);
+        helper.setReplyTo(fromEmail);
+    }
+
+    private void setBodies(MimeMessageHelper helper, String plainText, String htmlBody) throws MessagingException {
+        String html = htmlBody != null ? htmlBody : "";
+        String plain = (plainText != null && !plainText.isBlank())
+                ? plainText
+                : "You are invited. Open this message to see your card, or check the attachment.";
+        helper.setText(plain, html);
     }
 }

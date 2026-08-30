@@ -14,7 +14,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/receipts")
-@CrossOrigin(origins = "*")
 @Tag(name = "Receipts", description = "Receipt generation and delivery tracking endpoints")
 public class ReceiptController {
 

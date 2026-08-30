@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -27,6 +28,12 @@ class EventServiceImplTest {
 
     @Mock
     private EventRepository eventRepository;
+
+    @Mock
+    private com.InvitationSystem.InvitationSystem.repository.TemplateRepository templateRepository;
+
+    @Mock
+    private com.InvitationSystem.InvitationSystem.service.InvitationService invitationService;
 
     @InjectMocks
     private EventServiceImpl eventService;
@@ -41,13 +48,12 @@ class EventServiceImplTest {
         eventId = UUID.randomUUID();
         createdBy = UUID.randomUUID();
 
-        request = new EventRequestDto(
-                "Tech Summit",
-                "Annual summit",
-                "Main Hall",
-                LocalDateTime.now().plusDays(3),
-                EventType.CONFERENCE
-        );
+        request = new EventRequestDto();
+        request.setEventName("Tech Summit");
+        request.setEventDescription("Annual summit");
+        request.setVenue("Main Hall");
+        request.setEventDate(LocalDateTime.now().plusDays(3));
+        request.setEventType(EventType.CONFERENCE);
 
         event = Event.builder()
                 .id(eventId)
@@ -69,6 +75,40 @@ class EventServiceImplTest {
 
         assertEquals("Tech Summit", response.getEventName());
         assertEquals(EventType.CONFERENCE, response.getEventType());
+    }
+
+    @Test
+    void createEvent_defaultsVenueAndDateWhenMissing() {
+        request.setVenue(null);
+        request.setEventDate(null);
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> {
+            Event saved = invocation.getArgument(0);
+            assertEquals("To be confirmed", saved.getVenue());
+            assertNotNull(saved.getEventDate());
+            saved.setId(eventId);
+            return saved;
+        });
+
+        EventResponseDto response = eventService.createEvent(request, createdBy);
+
+        assertEquals("To be confirmed", response.getVenue());
+        assertNotNull(response.getEventDate());
+    }
+
+    @Test
+    void createEvent_usesRequestStatus() {
+        request.setStatus("completed");
+        event.setStatus("COMPLETED");
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> {
+            Event saved = invocation.getArgument(0);
+            assertEquals("COMPLETED", saved.getStatus());
+            event.setStatus(saved.getStatus());
+            return event;
+        });
+
+        EventResponseDto response = eventService.createEvent(request, createdBy);
+
+        assertEquals("COMPLETED", response.getStatus());
     }
 
     @Test

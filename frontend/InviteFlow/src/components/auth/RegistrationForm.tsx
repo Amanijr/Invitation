@@ -1,18 +1,20 @@
-import { FC, useState, ChangeEvent } from "react";
+import { type ChangeEvent, type FC, type FormEvent, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { validateRegister } from "@/components/utils/validation";
+import { apiFetch, readError } from "@/lib/api";
+import { signOut } from "@/lib/session";
+import { RegisterFormState, FormErrors } from "@/types/auth.types";
 
-import FieldGroup from "../ui/FieldGroup";
-import GlowButton from "../ui/GlowButton";
-import SuccessState from "../ui/SuccessState";
-
-import { validateRegister } from "../utils/validation";
-import { RegisterFormState, FormErrors } from "../../types/auth.types";
 interface RegisterFormProps {
   onSwitch: () => void;
+  nextPath?: string;
 }
 
-const LABEL = "block text-xs font-medium tracking-widest uppercase text-zinc-500 mb-2";
-
-const RegisterForm: FC<RegisterFormProps> = ({ onSwitch }) => {
+const RegisterForm: FC<RegisterFormProps> = ({ onSwitch, nextPath }) => {
+  const navigate = useNavigate();
   const [form, setForm] = useState<RegisterFormState>({
     firstName: "",
     lastName: "",
@@ -22,139 +24,116 @@ const RegisterForm: FC<RegisterFormProps> = ({ onSwitch }) => {
     role: "EVENT_MANAGER",
   });
   const [errors, setErrors] = useState<FormErrors>({});
-  const [loading, setLoading] = useState<boolean>(false);
-  const [success, setSuccess] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const setField =
     (field: keyof RegisterFormState) =>
-    (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
+    (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setForm((f) => ({ ...f, [field]: e.target.value }));
     };
 
-  const handleSubmit = (): void => {
-    const e = validateRegister(form);
-    if (Object.keys(e).length) { setErrors(e); return; }
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const next = validateRegister(form);
+    if (Object.keys(next).length) {
+      setErrors(next);
+      return;
+    }
     setErrors({});
+    setSubmitError(null);
     setLoading(true);
-    // TODO: replace with real API call → POST /api/v1/auth/register
-    setTimeout(() => { setLoading(false); setSuccess(true); }, 1800);
+    try {
+      const res = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          email: form.email.trim(),
+          password: form.password,
+          role: "EVENT_MANAGER",
+        }),
+      });
+      if (!res.ok) {
+        setSubmitError(await readError(res));
+        return;
+      }
+      signOut();
+      const params = new URLSearchParams({ mode: "login", registered: "1" });
+      const email = form.email.trim();
+      if (email) params.set("email", email);
+      if (nextPath) params.set("next", nextPath);
+      navigate(`/auth?${params.toString()}`);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Could not create the account.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (success) return (
-    <SuccessState
-      title="Account Created"
-      subtitle="You're all set."
-      action="Sign In →"
-      onAction={onSwitch}
-    />
-  );
-
   return (
-    <div className="px-10 py-10 w-full overflow-y-auto">
-      <div className="mb-8">
-        <p className="text-xs font-medium tracking-widest uppercase text-cyan-400 mb-2">
-          Get started
-        </p>
-        <h2 className="text-3xl font-light text-zinc-100 leading-tight">
-          Create your{" "}
-          <span
-            className="text-transparent bg-clip-text"
-            style={{ backgroundImage: "linear-gradient(90deg, #06b6d4, #3b82f6)" }}
-          >
-            account
-          </span>
-        </h2>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Create account</p>
+        <h2 className="mt-2 font-display text-2xl font-semibold">Join the desk</h2>
       </div>
 
-      {/* Name row */}
+      {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
+
       <div className="grid grid-cols-2 gap-4">
-        <div className="mb-5">
-          <label className={LABEL}>First Name</label>
-          <input
-            type="text"
-            placeholder="Jane"
-            value={form.firstName}
-            onChange={setField("firstName")}
-            className={
-              "w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-400 outline-none px-4 py-3 text-zinc-100 placeholder-zinc-600 text-sm transition-all duration-200 rounded-sm" +
-              (errors.firstName ? " border-red-500" : "")
-            }
-          />
-          {errors.firstName && (
-            <p className="text-xs text-red-400 mt-1">{errors.firstName}</p>
-          )}
+        <div className="space-y-2">
+          <Label htmlFor="first-name">First name</Label>
+          <Input id="first-name" value={form.firstName} onChange={setField("firstName")} autoComplete="given-name" />
+          {errors.firstName ? <p className="text-xs text-destructive">{errors.firstName}</p> : null}
         </div>
-        <div className="mb-5">
-          <label className={LABEL}>Last Name</label>
-          <input
-            type="text"
-            placeholder="Smith"
-            value={form.lastName}
-            onChange={setField("lastName")}
-            className={
-              "w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-400 outline-none px-4 py-3 text-zinc-100 placeholder-zinc-600 text-sm transition-all duration-200 rounded-sm" +
-              (errors.lastName ? " border-red-500" : "")
-            }
-          />
-          {errors.lastName && (
-            <p className="text-xs text-red-400 mt-1">{errors.lastName}</p>
-          )}
+        <div className="space-y-2">
+          <Label htmlFor="last-name">Last name</Label>
+          <Input id="last-name" value={form.lastName} onChange={setField("lastName")} autoComplete="family-name" />
+          {errors.lastName ? <p className="text-xs text-destructive">{errors.lastName}</p> : null}
         </div>
       </div>
 
-      <FieldGroup
-        label="Email Address"
-        type="email"
-        placeholder="you@company.com"
-        value={form.email}
-        onChange={setField("email") as (e: ChangeEvent<HTMLInputElement>) => void}
-        error={errors.email}
-      />
-
-      {/* Role selector */}
-      <div className="mb-5">
-        <label className={LABEL}>Role</label>
-        <select
-          value={form.role}
-          onChange={setField("role")}
-          className="w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-400 outline-none px-4 py-3 text-zinc-300 text-sm transition-all duration-200 rounded-sm cursor-pointer"
-        >
-          <option value="EVENT_MANAGER">Event Manager</option>
-          <option value="GUEST">Guest</option>
-        </select>
+      <div className="space-y-2">
+        <Label htmlFor="reg-email">Email</Label>
+        <Input id="reg-email" type="email" value={form.email} onChange={setField("email")} autoComplete="email" />
+        {errors.email ? <p className="text-xs text-destructive">{errors.email}</p> : null}
       </div>
 
-      <FieldGroup
-        label="Password"
-        type="password"
-        placeholder="Min. 6 characters"
-        value={form.password}
-        onChange={setField("password") as (e: ChangeEvent<HTMLInputElement>) => void}
-        error={errors.password}
-      />
-      <FieldGroup
-        label="Confirm Password"
-        type="password"
-        placeholder="Repeat password"
-        value={form.confirm}
-        onChange={setField("confirm") as (e: ChangeEvent<HTMLInputElement>) => void}
-        error={errors.confirm}
-      />
+      <div className="space-y-2">
+        <Label htmlFor="reg-password">Password</Label>
+        <Input
+          id="reg-password"
+          type="password"
+          value={form.password}
+          onChange={setField("password")}
+          autoComplete="new-password"
+        />
+        {errors.password ? <p className="text-xs text-destructive">{errors.password}</p> : null}
+      </div>
 
-      <GlowButton loading={loading} onClick={handleSubmit}>
-        Create Account
-      </GlowButton>
+      <div className="space-y-2">
+        <Label htmlFor="reg-confirm">Confirm password</Label>
+        <Input
+          id="reg-confirm"
+          type="password"
+          value={form.confirm}
+          onChange={setField("confirm")}
+          autoComplete="new-password"
+        />
+        {errors.confirm ? <p className="text-xs text-destructive">{errors.confirm}</p> : null}
+      </div>
 
-      <p className="text-center text-xs text-zinc-600 mt-6">
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "Creating…" : "Create account"}
+      </Button>
+
+      <p className="text-center text-sm text-muted-foreground">
         Already registered?{" "}
-        <button
-          onClick={onSwitch}
-          className="text-cyan-400 font-semibold hover:text-cyan-300 transition-colors"
-        >
+        <button type="button" onClick={onSwitch} className="font-medium text-accent hover:underline">
           Sign in
         </button>
       </p>
-    </div>
+    </form>
   );
 };
 

@@ -8,9 +8,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
+import lombok.Builder;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @io.swagger.v3.oas.annotations.media.Schema(description = "Request payload for creating or updating invitation templates")
 public class TemplateRequestDto {
     private UUID eventId;
@@ -19,4 +22,6 @@ public class TemplateRequestDto {
     private String content;
     private MultipartFile file;
     private String previewImageUrl;
+    private Integer width;
+    private Integer height;
 }

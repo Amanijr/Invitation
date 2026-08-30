@@ -31,7 +31,8 @@ class EmailServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(emailService, "fromEmail", "noreply@invitationsystem.com");
-        ReflectionTestUtils.setField(emailService, "baseUrl", "http://localhost:8080");
+        ReflectionTestUtils.setField(emailService, "fromName", "InviteFlow");
+        ReflectionTestUtils.setField(emailService, "publicUrl", "http://localhost:5173");
     }
 
     @Test
@@ -67,6 +68,21 @@ class EmailServiceTest {
                 "<html>card</html>",
                 null,
                 "invitation.pdf"
+        ));
+        verify(mailSender, times(1)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void sendHtmlEmailWithCard_success() {
+        MimeMessage mimeMessage = new MimeMessage((jakarta.mail.Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        assertDoesNotThrow(() -> emailService.sendHtmlEmailWithCard(
+                "guest@example.com",
+                "Invitation",
+                "<p>Hello</p><img src='cid:invitation-card' alt='card' />",
+                new byte[] {1, 2, 3},
+                "invitation-card.png"
         ));
         verify(mailSender, times(1)).send(any(MimeMessage.class));
     }

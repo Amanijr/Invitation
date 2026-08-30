@@ -1,12 +1,11 @@
 package com.InvitationSystem.InvitationSystem.security;
 
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-
+@Slf4j
 @Component
 public class KeyLoggerRunner implements CommandLineRunner {
 
@@ -15,7 +14,7 @@ public class KeyLoggerRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        System.out.println("--- NEW SECURE JWT SECRET ---");
-        System.out.println(keyGenerator.generateSecureSecret());
+        log.info("--- SECURE JWT SECRET GENERATED ---");
+        log.info(keyGenerator.generateSecureSecret());
     }
 }

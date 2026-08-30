@@ -16,7 +16,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/bulk-uploads")
-@CrossOrigin(origins = "*")
 @Tag(name = "Bulk Uploads", description = "Bulk invitation upload and processing endpoints")
 public class BulkUploadController {
 

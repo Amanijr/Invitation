@@ -1,0 +1,47 @@
+[
+  {
+    "template_title": "Floral Oval Wedding Invitation",
+    "category": "Wedding",
+    "file_format": "JPEG",
+    "direct_download_url": "https://www.figma.com/community/file/1249800382063198952/wedding-invitation-community",
+    "license_type": "CC BY 4.0",
+    "preview_image_url": "https://s3-alpha.figma.com/hub/file/3637324235/767b837f-cead-40c5-ac74-79100ec6d1e9-cover.png",
+    "jpeg_file": "community-wedding.jpg"
+  },
+  {
+    "template_title": "Orchid Digital Wedding Invitation",
+    "category": "Wedding",
+    "file_format": "JPEG",
+    "direct_download_url": "https://www.figma.com/community/file/1340686106381385852/wedding-invitation",
+    "license_type": "CC BY 4.0",
+    "preview_image_url": "https://s3-alpha.figma.com/hub/file/5171231545/f3d450d5-c4a0-4461-aeca-9c1664fbc21b-cover.png",
+    "jpeg_file": "orchid-wedding.jpg"
+  },
+  {
+    "template_title": "Mobile Wedding Invitation",
+    "category": "Wedding",
+    "file_format": "JPEG",
+    "direct_download_url": "https://www.figma.com/community/file/1205898352224410726/wedding-invitation",
+    "license_type": "CC BY 4.0",
+    "preview_image_url": "https://s3-alpha.figma.com/hub/file/2998836940/bcc28d6b-46d7-485d-abd2-f9ed68699c4f-cover.png",
+    "jpeg_file": "wedding-invitation.jpg"
+  },
+  {
+    "template_title": "Floral Engagement Invitation",
+    "category": "Engagement",
+    "file_format": "JPEG",
+    "direct_download_url": "https://www.figma.com/community/file/1639295508057222996/engagement-invitation",
+    "license_type": "CC BY 4.0",
+    "preview_image_url": "https://s3-alpha.figma.com/hub/file/2382026311291133563/91e9561a-074b-4a7c-95ac-5e8b90312faf-cover.png",
+    "jpeg_file": "engagement.jpg"
+  },
+  {
+    "template_title": "Graduation Ceremony Invitation",
+    "category": "Graduation",
+    "file_format": "JPEG",
+    "direct_download_url": "https://github.com/leecois/graduation-invitation",
+    "license_type": "MIT License",
+    "preview_image_url": "https://raw.githubusercontent.com/leecois/graduation-invitation/main/public/og.png",
+    "jpeg_file": "graduation.jpg"
+  }
+]

@@ -13,7 +13,11 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "events")
+@Table(name = "events", indexes = {
+        @Index(name = "idx_event_created_by", columnList = "createdBy"),
+        @Index(name = "idx_event_status", columnList = "status"),
+        @Index(name = "idx_event_date", columnList = "eventDate")
+})
 
 
 @io.swagger.v3.oas.annotations.media.Schema(description = "Event persistence entity")
@@ -34,13 +38,33 @@ public class Event {
     private LocalDateTime eventDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "event_type", nullable = false)
+    @Column(name = "event_type", nullable = false, length = 32)
     private EventType eventType;
 
     private String status;
 
+    @Column(columnDefinition = "TEXT")
+    private String stayDetails;
+
+    private String registryUrl;
+
+    private String registryLabel;
+
+    @Builder.Default
+    private Boolean askDietary = true;
+
+    @Builder.Default
+    private Boolean askMeal = true;
+
+    private String mealOptions;
+
     @Column(nullable = false)
     private UUID createdBy;
+
+    private UUID currentTemplateId;
+
+    @Builder.Default
+    private Integer currentTemplateVersion = 1;
 
     private LocalDateTime createdAt;
 

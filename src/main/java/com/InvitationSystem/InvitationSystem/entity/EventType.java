@@ -7,9 +7,19 @@ package com.InvitationSystem.InvitationSystem.entity;
 @io.swagger.v3.oas.annotations.media.Schema(description = "Supported event types")
 public enum EventType {
     WEDDING,
-    CONFERENCE,
+    SEND_OFF,
     BIRTHDAY,
-    FUNERAL,
+    GRADUATION,
+    CHURCH,
+    ANNIVERSARY,
     CORPORATE,
+    CONFERENCE,
+    SEMINAR,
+    MEETING,
+    PARTY,
+    CELEBRATION,
+    GALA,
+    EXPO,
+    FUNERAL,
     OTHER
 }

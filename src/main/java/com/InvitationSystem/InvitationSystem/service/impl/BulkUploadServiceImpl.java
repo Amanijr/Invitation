@@ -36,6 +36,9 @@ public class BulkUploadServiceImpl implements BulkUploadService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private com.InvitationSystem.InvitationSystem.service.GuestService guestService;
+
     @Override
     public BulkUploadResponseDto processBulkUpload(BulkUploadRequestDto request, UUID uploadedBy) {
         BulkUploadSession session = BulkUploadSession.builder()
@@ -61,15 +64,20 @@ public class BulkUploadServiceImpl implements BulkUploadService {
 
             for (Map<String, String> guest : guestData) {
                 try {
+                    String email = guest.get("email");
+                    String phone = guest.get("phone");
+                    String name = guest.get("name") != null ? guest.get("name") : guest.get("fullName");
+
+                    var guestDto = guestService.findOrCreateGuest(request.getEventId(), name, email, phone);
+
                     InvitationRequestDto invitationRequest = new InvitationRequestDto();
                     invitationRequest.setEventId(request.getEventId());
-                    invitationRequest.setTemplateId(request.getTemplateId() != null ? request.getTemplateId() : null);
-                    invitationRequest.setRecipientPhone(guest.get("phone"));
-                    invitationRequest.setRecipientEmail(guest.get("email"));
+                    invitationRequest.setTemplateId(request.getTemplateId());
+                    invitationRequest.setRecipientPhone(phone);
+                    invitationRequest.setRecipientEmail(email);
+                    invitationRequest.setGuestName(guestDto.getFullName());
+                    invitationRequest.setGuestId(guestDto.getId());
                     invitationRequest.setExpiryDate(LocalDateTime.now().plusDays(30));
-
-                    UUID guestId = UUID.nameUUIDFromBytes((guest.get("email") + guest.get("phone")).getBytes());
-                    invitationRequest.setGuestId(guestId);
 
                     var invitation = invitationService.createInvitation(invitationRequest);
 

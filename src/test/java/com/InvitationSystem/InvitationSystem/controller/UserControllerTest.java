@@ -1,7 +1,9 @@
 package com.InvitationSystem.InvitationSystem.controller;
 
+import com.InvitationSystem.InvitationSystem.Dto.UserDto.ProfileUpdateRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserResponseDto;
+import com.InvitationSystem.InvitationSystem.security.JwtGenerator;
 import com.InvitationSystem.InvitationSystem.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -37,6 +40,9 @@ class UserControllerTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private JwtGenerator jwtGenerator;
+
     @InjectMocks
     private UserController userController;
 
@@ -60,6 +66,38 @@ class UserControllerTest {
                 "EVENT_MANAGER",
                 true
         );
+    }
+
+    @Test
+    void getMe_success() throws Exception {
+        when(userService.getUserByEmail("john@example.com")).thenReturn(Optional.of(responseDto));
+
+        mockMvc.perform(get("/api/v1/users/me")
+                        .principal(new UsernamePasswordAuthenticationToken("john@example.com", "n"))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("john@example.com"))
+                .andExpect(jsonPath("$.firstName").value("John"));
+    }
+
+    @Test
+    void updateMe_success() throws Exception {
+        ProfileUpdateRequestDto requestDto = new ProfileUpdateRequestDto(
+                "Jane", "Doe", "john@example.com", null, null);
+        UserResponseDto updated = new UserResponseDto(
+                userId, "Jane", "Doe", "john@example.com", "EVENT_MANAGER", true);
+        when(userService.updateProfile(eq("john@example.com"), any(ProfileUpdateRequestDto.class)))
+                .thenReturn(updated);
+        when(jwtGenerator.generateToken("john@example.com", userId, "EVENT_MANAGER")).thenReturn("new-token");
+
+        mockMvc.perform(put("/api/v1/users/me")
+                        .principal(new UsernamePasswordAuthenticationToken("john@example.com", "n"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("new-token"))
+                .andExpect(jsonPath("$.firstName").value("Jane"))
+                .andExpect(jsonPath("$.role").value("EVENT_MANAGER"));
     }
 
     @Test

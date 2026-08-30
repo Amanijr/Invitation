@@ -1,86 +1,110 @@
-import { FC, useState } from "react";
+import { type FC, type FormEvent, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { validateLogin } from "@/components/utils/validation";
+import { apiFetch, readError, readJson } from "@/lib/api";
+import { signIn, type AuthResponse } from "@/lib/session";
+import { LoginFormState, FormErrors } from "@/types/auth.types";
 
-import FieldGroup from "../ui/FieldGroup";
-import GlowButton from "../ui/GlowButton";
-import SuccessState from "../ui/SuccessState";
-
-import { validateLogin } from "../utils/validation";
-import { LoginFormState, FormErrors } from "../../types/auth.types";
 interface LoginFormProps {
   onSwitch: () => void;
+  nextPath?: string;
+  initialEmail?: string;
+  justRegistered?: boolean;
 }
 
-const LoginForm: FC<LoginFormProps> = ({ onSwitch }) => {
-  const [form, setForm] = useState<LoginFormState>({ email: "", password: "" });
+const LoginForm: FC<LoginFormProps> = ({
+  onSwitch,
+  nextPath = "/admin/dashboard",
+  initialEmail = "",
+  justRegistered = false,
+}) => {
+  const navigate = useNavigate();
+  const [form, setForm] = useState<LoginFormState>({ email: initialEmail, password: "" });
   const [errors, setErrors] = useState<FormErrors>({});
-  const [loading, setLoading] = useState<boolean>(false);
-  const [success, setSuccess] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const handleSubmit = (): void => {
-    const e = validateLogin(form);
-    if (Object.keys(e).length) { setErrors(e); return; }
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const next = validateLogin(form);
+    if (Object.keys(next).length) {
+      setErrors(next);
+      return;
+    }
     setErrors({});
+    setSubmitError(null);
     setLoading(true);
-    // TODO: replace with real API call → POST /api/v1/auth/login
-    setTimeout(() => { setLoading(false); setSuccess(true); }, 1600);
+    try {
+      const res = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: form.email.trim(), password: form.password }),
+      });
+      if (!res.ok) {
+        setSubmitError(await readError(res));
+        return;
+      }
+      const auth = await readJson<AuthResponse>(res);
+      signIn(auth);
+      navigate(nextPath);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Could not sign in.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (success) return <SuccessState title="Authenticated" subtitle="Welcome back." />;
-
   return (
-    <div className="px-10 py-12 w-full">
-      <div className="mb-10">
-        <p className="text-xs font-medium tracking-widest uppercase text-cyan-400 mb-2">
-          Welcome back
-        </p>
-        <h2 className="text-3xl font-light text-zinc-100 leading-tight">
-          Sign in to your{" "}
-          <span
-            className="text-transparent bg-clip-text"
-            style={{ backgroundImage: "linear-gradient(90deg, #06b6d4, #3b82f6)" }}
-          >
-            workspace
-          </span>
-        </h2>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sign in</p>
+        <h2 className="mt-2 font-display text-2xl font-semibold">Open the desk</h2>
       </div>
 
-      <FieldGroup
-        label="Email Address"
-        type="email"
-        placeholder="you@company.com"
-        value={form.email}
-        onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-        error={errors.email}
-      />
-      <FieldGroup
-        label="Password"
-        type="password"
-        placeholder="••••••••"
-        value={form.password}
-        onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-        error={errors.password}
-      />
+      {justRegistered ? (
+        <p className="text-sm leading-6 text-foreground">Account created. Sign in to open the desk.</p>
+      ) : null}
 
-      <div className="flex justify-end mb-8">
-        <button className="text-xs text-zinc-500 hover:text-cyan-400 tracking-wide transition-colors">
-          Forgot password?
-        </button>
+      {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
+
+      <div className="space-y-2">
+        <Label htmlFor="login-email">Email</Label>
+        <Input
+          id="login-email"
+          type="email"
+          placeholder="you@studio.com"
+          value={form.email}
+          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          autoComplete="email"
+        />
+        {errors.email ? <p className="text-xs text-destructive">{errors.email}</p> : null}
       </div>
 
-      <GlowButton loading={loading} onClick={handleSubmit}>
-        Sign In
-      </GlowButton>
+      <div className="space-y-2">
+        <Label htmlFor="login-password">Password</Label>
+        <Input
+          id="login-password"
+          type="password"
+          value={form.password}
+          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+          autoComplete="current-password"
+        />
+        {errors.password ? <p className="text-xs text-destructive">{errors.password}</p> : null}
+      </div>
 
-      <p className="text-center text-xs text-zinc-600 mt-6">
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "Signing in…" : "Sign in"}
+      </Button>
+
+      <p className="text-center text-sm text-muted-foreground">
         No account?{" "}
-        <button
-          onClick={onSwitch}
-          className="text-cyan-400 font-semibold hover:text-cyan-300 transition-colors"
-        >
+        <button type="button" onClick={onSwitch} className="font-medium text-accent hover:underline">
           Create one
         </button>
       </p>
-    </div>
+    </form>
   );
 };
 

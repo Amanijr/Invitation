@@ -21,4 +21,15 @@ public class EventRequestDto {
 
     @NotNull(message = "Event type cannot be null")
     private EventType eventType;
+
+    private String status;
+
+    private String stayDetails;
+    private String registryUrl;
+    private String registryLabel;
+    private Boolean askDietary;
+    private Boolean askMeal;
+    private String mealOptions;
+
+    private java.util.UUID currentTemplateId;
 }

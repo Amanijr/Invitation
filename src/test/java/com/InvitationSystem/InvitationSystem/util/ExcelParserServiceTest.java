@@ -30,9 +30,7 @@ class ExcelParserServiceTest {
         assertNotNull(headers);
         assertTrue(headers.contains("email"));
         assertTrue(headers.contains("phone"));
-        assertTrue(headers.contains("name"));
-        assertTrue(headers.contains("company"));
-        assertTrue(headers.contains("notes"));
+        assertTrue(headers.contains("fullName"));
     }
 
     @Test
@@ -41,7 +39,7 @@ class ExcelParserServiceTest {
         List<String> headers = excelParserService.getExpectedHeaders();
 
         // Assert
-        assertEquals(5, headers.size());
+        assertEquals(3, headers.size());
     }
 
     @Test
@@ -134,6 +132,20 @@ class ExcelParserServiceTest {
         assertTrue(headers.size() > 0);
         assertTrue(headers.contains("email"));
         assertTrue(headers.contains("phone"));
+    }
+
+    @Test
+    void testParseCsv_validCsvContent() {
+        String csv = "Full Name,Phone,Email\nJohn Michael,+1234567890,john@example.com\n";
+        MockMultipartFile file = new MockMultipartFile("file", "guests.csv", "text/csv", csv.getBytes());
+
+        List<Map<String, String>> result = excelParserService.parseFile(file);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("John Michael", result.get(0).get("fullName"));
+        assertEquals("+1234567890", result.get(0).get("phone"));
+        assertEquals("john@example.com", result.get(0).get("email"));
     }
 
     @Test

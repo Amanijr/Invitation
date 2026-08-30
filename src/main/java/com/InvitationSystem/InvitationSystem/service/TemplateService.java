@@ -17,7 +17,10 @@ public interface TemplateService {
     List<TemplateResponseDto> getAllTemplates();
     TemplateResponseDto updateTemplate(UUID templateId, TemplateRequestDto request);
     TemplateResponseDto deactivateTemplate(UUID templateId);
+    TemplateResponseDto activateTemplate(UUID templateId);
     void deleteTemplate(UUID templateId);
+    int deleteAllTemplates();
+    byte[] loadTemplateFile(UUID templateId);
 
     // --- Search & Filtering ---
     List<TemplateResponseDto> getAllActiveTemplates();

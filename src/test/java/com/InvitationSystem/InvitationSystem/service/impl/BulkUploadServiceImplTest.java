@@ -43,6 +43,9 @@ class BulkUploadServiceImplTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private com.InvitationSystem.InvitationSystem.service.GuestService guestService;
+
     @InjectMocks
     private BulkUploadServiceImpl bulkUploadService;
 
@@ -71,6 +74,14 @@ class BulkUploadServiceImplTest {
 
         when(excelParserService.parseExcelBytes(any()))
                 .thenReturn(guestData);
+        when(guestService.findOrCreateGuest(any(), any(), any(), any()))
+                .thenReturn(com.InvitationSystem.InvitationSystem.Dto.guestDto.GuestResponseDto.builder()
+                        .id(UUID.randomUUID())
+                        .eventId(eventId)
+                        .fullName("Guest")
+                        .phone("+123")
+                        .email("guest@example.com")
+                        .build());
         when(bulkUploadSessionRepository.save(any(BulkUploadSession.class)))
                 .thenAnswer(invocation -> {
                     BulkUploadSession session = invocation.getArgument(0);
@@ -79,7 +90,7 @@ class BulkUploadServiceImplTest {
                 });
         when(invitationService.createInvitation(any()))
                 .thenReturn(mockInvitationResponse());
-        when(invitationRepository.findByUniqueToken(anyString()))
+        when(invitationRepository.findByUniqueToken(any()))
                 .thenReturn(Optional.of(mockInvitation()));
 
         doNothing().when(emailService).sendBulkUploadConfirmation(anyString(), anyString(), anyInt(), anyInt());
@@ -102,6 +113,14 @@ class BulkUploadServiceImplTest {
 
         when(excelParserService.parseExcelBytes(any()))
                 .thenReturn(guestData);
+        when(guestService.findOrCreateGuest(any(), any(), any(), any()))
+                .thenReturn(com.InvitationSystem.InvitationSystem.Dto.guestDto.GuestResponseDto.builder()
+                        .id(UUID.randomUUID())
+                        .eventId(eventId)
+                        .fullName("Guest")
+                        .phone("+123")
+                        .email("guest@example.com")
+                        .build());
         when(bulkUploadSessionRepository.save(any(BulkUploadSession.class)))
                 .thenAnswer(invocation -> {
                     BulkUploadSession session = invocation.getArgument(0);

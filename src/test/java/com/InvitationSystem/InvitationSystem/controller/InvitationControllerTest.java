@@ -5,6 +5,11 @@ import com.InvitationSystem.InvitationSystem.Dto.invitationsDto.InvitationReques
 import com.InvitationSystem.InvitationSystem.Dto.invitationsDto.InvitationResponseDto;
 import com.InvitationSystem.InvitationSystem.Dto.invitationsDto.InvitationScanResponseDto;
 import com.InvitationSystem.InvitationSystem.entity.InvitationStatus;
+import com.InvitationSystem.InvitationSystem.entity.User;
+import com.InvitationSystem.InvitationSystem.entity.UserRole;
+import com.InvitationSystem.InvitationSystem.security.DeskUsers;
+import com.InvitationSystem.InvitationSystem.service.ECardRenderingEngineService;
+import com.InvitationSystem.InvitationSystem.service.EventService;
 import com.InvitationSystem.InvitationSystem.service.InvitationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +19,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -41,6 +48,15 @@ class InvitationControllerTest {
     @Mock
     private InvitationService invitationService;
 
+    @Mock
+    private ECardRenderingEngineService eCardRenderingEngineService;
+
+    @Mock
+    private DeskUsers deskUsers;
+
+    @Mock
+    private EventService eventService;
+
     @InjectMocks
     private InvitationController invitationController;
 
@@ -65,6 +81,7 @@ class InvitationControllerTest {
         responseDto = new InvitationResponseDto();
         responseDto.setId(invitationId);
         responseDto.setStatus(InvitationStatus.GENERATED);
+        responseDto.setUsed(true);
 
         detailedDto = new InvitationDetailedResponseDto();
         detailedDto.setId(invitationId);
@@ -86,7 +103,8 @@ class InvitationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(invitationId.toString()));
+                .andExpect(jsonPath("$.id").value(invitationId.toString()))
+                .andExpect(jsonPath("$.used").value(true));
     }
 
     @Test
@@ -100,10 +118,38 @@ class InvitationControllerTest {
     }
 
     @Test
+    void getInvitationCardByToken_returnsPng() throws Exception {
+        when(eCardRenderingEngineService.renderCardImageBytesByToken("tok-1")).thenReturn(new byte[] {1, 2, 3});
+
+        mockMvc.perform(get("/api/v1/invitations/token/{token}/card", "tok-1"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getInvitationCardByToken_notFound() throws Exception {
+        when(eCardRenderingEngineService.renderCardImageBytesByToken("missing"))
+                .thenThrow(new IllegalArgumentException("Invitation not found for token"));
+
+        mockMvc.perform(get("/api/v1/invitations/token/{token}/card", "missing"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void getInvitationByEvent_success() throws Exception {
+        User deskUser = User.builder()
+                .userId(UUID.randomUUID())
+                .firstName("Amani")
+                .lastName("Juma")
+                .email("amani@studio.com")
+                .passwordHash("hash")
+                .role(UserRole.EVENT_MANAGER)
+                .build();
+        when(deskUsers.require(any(Authentication.class))).thenReturn(deskUser);
+        doNothing().when(eventService).assertCanAccess(eventId, deskUser.getUserId(), deskUser.getRole());
         when(invitationService.getInvitationsByEvent(eventId)).thenReturn(List.of(detailedDto));
 
-        mockMvc.perform(get("/api/v1/invitations/event/{eventId}", eventId))
+        mockMvc.perform(get("/api/v1/invitations/event/{eventId}", eventId)
+                        .principal(new UsernamePasswordAuthenticationToken(deskUser.getEmail(), "n")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)));
     }
@@ -133,16 +179,16 @@ class InvitationControllerTest {
         InvitationScanResponseDto scanResponseDto = new InvitationScanResponseDto(
                 invitationId,
                 "token-1",
-                InvitationStatus.USED,
-                true,
+                InvitationStatus.SENT,
+                false,
                 null,
-                "Check-in successful"
+                "Invitation valid"
         );
         when(invitationService.scanInvitationByToken("token-1")).thenReturn(scanResponseDto);
 
         mockMvc.perform(get("/api/v1/invitations/scan/{token}", "token-1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Check-in successful"));
+                .andExpect(jsonPath("$.message").value("Invitation valid"));
     }
 
     @Test
@@ -153,5 +199,39 @@ class InvitationControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(invitationService, times(1)).deleteInvitation(invitationId);
+    }
+
+    @Test
+    void generateBulkInvitations_success() throws Exception {
+        UUID templateId = UUID.randomUUID();
+        com.InvitationSystem.InvitationSystem.Dto.invitationsDto.BulkGenerationRequestDto bulkReq =
+                com.InvitationSystem.InvitationSystem.Dto.invitationsDto.BulkGenerationRequestDto.builder()
+                        .eventId(eventId)
+                        .templateId(templateId)
+                        .regenerationPolicy(com.InvitationSystem.InvitationSystem.Dto.invitationsDto.RegenerationPolicy.SKIP_EXISTING)
+                        .build();
+
+        com.InvitationSystem.InvitationSystem.Dto.invitationsDto.BulkGenerationResultDto bulkResult =
+                com.InvitationSystem.InvitationSystem.Dto.invitationsDto.BulkGenerationResultDto.builder()
+                        .eventId(eventId)
+                        .templateId(templateId)
+                        .totalGuests(5)
+                        .successCount(4)
+                        .skippedCount(1)
+                        .failedCount(0)
+                        .successfulInvitationIds(List.of(UUID.randomUUID(), UUID.randomUUID()))
+                        .errors(List.of())
+                        .build();
+
+        when(invitationService.generateBulkInvitations(any(com.InvitationSystem.InvitationSystem.Dto.invitationsDto.BulkGenerationRequestDto.class)))
+                .thenReturn(bulkResult);
+
+        mockMvc.perform(post("/api/v1/invitations/generate-bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bulkReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.totalGuests").value(5))
+                .andExpect(jsonPath("$.successCount").value(4))
+                .andExpect(jsonPath("$.skippedCount").value(1));
     }
 }

@@ -14,7 +14,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/payments")
-@CrossOrigin(origins = "*")
 @Tag(name = "Payments", description = "Payment processing endpoints")
 public class PaymentController {
 

@@ -1,5 +1,6 @@
 package com.InvitationSystem.InvitationSystem.service.impl;
 
+import com.InvitationSystem.InvitationSystem.Dto.UserDto.ProfileUpdateRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserResponseDto;
 import com.InvitationSystem.InvitationSystem.entity.User;
@@ -29,12 +30,22 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("User with email " + request.getEmail() + " already exists");
         }
 
+        UserRole role;
+        try {
+            String roleName = request.getRole() == null || request.getRole().isBlank()
+                    ? UserRole.EVENT_MANAGER.name()
+                    : request.getRole();
+            role = UserRole.valueOf(roleName.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid role: " + request.getRole());
+        }
+
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .role(UserRole.valueOf(request.getRole().toUpperCase()))
+                .role(role)
                 .enabled(true)
                 .build();
 
@@ -76,14 +87,64 @@ public class UserServiceImpl implements UserService {
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
-        try {
-            user.setRole(UserRole.valueOf(request.getRole().toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid role: " + request.getRole());
+        if (request.getRole() != null && !request.getRole().isBlank()) {
+            try {
+                user.setRole(UserRole.valueOf(request.getRole().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid role: " + request.getRole());
+            }
         }
 
         User updatedUser = userRepository.save(user);
         return mapToResponseDto(updatedUser);
+    }
+
+    @Override
+    public UserResponseDto updateProfile(String email, ProfileUpdateRequestDto request) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Sign in to edit your profile.");
+        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found for " + email));
+
+        String firstName = request.getFirstName() == null ? "" : request.getFirstName().trim();
+        String lastName = request.getLastName() == null ? "" : request.getLastName().trim();
+        String nextEmail = request.getEmail() == null ? "" : request.getEmail().trim();
+        if (firstName.isEmpty()) {
+            throw new IllegalArgumentException("First name is required.");
+        }
+        if (lastName.isEmpty()) {
+            throw new IllegalArgumentException("Last name is required.");
+        }
+        if (nextEmail.isEmpty() || !nextEmail.contains("@")) {
+            throw new IllegalArgumentException("Enter a valid email address.");
+        }
+
+        boolean emailChanged = !user.getEmail().equalsIgnoreCase(nextEmail);
+        boolean passwordChange = request.getNewPassword() != null && !request.getNewPassword().isBlank();
+        if (emailChanged || passwordChange) {
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
+                throw new IllegalArgumentException("Enter your current password to change email or password.");
+            }
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+                throw new IllegalArgumentException("Current password is incorrect.");
+            }
+        }
+        if (passwordChange && request.getNewPassword().length() < 6) {
+            throw new IllegalArgumentException("New password must be at least 6 characters.");
+        }
+        if (emailChanged && userRepository.existsByEmail(nextEmail)) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setEmail(nextEmail);
+        if (passwordChange) {
+            user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        }
+
+        return mapToResponseDto(userRepository.save(user));
     }
 
     @Override

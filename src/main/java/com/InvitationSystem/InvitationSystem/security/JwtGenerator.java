@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -29,16 +30,29 @@ public class JwtGenerator {
     }
 
     public String generateToken(Authentication authentication) {
-        String email = authentication.getName();
+        return generateToken(authentication.getName(), null, null);
+    }
+
+    public String generateToken(String email) {
+        return generateToken(email, null, null);
+    }
+
+    public String generateToken(String email, UUID userId, String role) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + jwtExpirationMs);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(email)
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(getSigningKey())
-                .compact();
+                .signWith(getSigningKey());
+        if (userId != null) {
+            builder.claim("userId", userId.toString());
+        }
+        if (role != null && !role.isBlank()) {
+            builder.claim("role", role);
+        }
+        return builder.compact();
     }
 
     public String getEmailFromToken(String token) {

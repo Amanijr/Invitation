@@ -21,4 +21,12 @@ public class EventResponseDto {
     private LocalDateTime eventDate;
     private EventType eventType;
     private String status;
+    private String stayDetails;
+    private String registryUrl;
+    private String registryLabel;
+    private Boolean askDietary;
+    private Boolean askMeal;
+    private String mealOptions;
+    private UUID currentTemplateId;
+    private Integer currentTemplateVersion;
 }

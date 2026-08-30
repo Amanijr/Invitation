@@ -1,5 +1,7 @@
 package com.InvitationSystem.InvitationSystem.service;
 
+import com.InvitationSystem.InvitationSystem.Dto.checkInDto.CheckInRequestDto;
+import com.InvitationSystem.InvitationSystem.Dto.checkInDto.CheckInResponseDto;
 import com.InvitationSystem.InvitationSystem.Dto.invitationsDto.InvitationRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.invitationsDto.InvitationResponseDto;
 import com.InvitationSystem.InvitationSystem.Dto.invitationsDto.InvitationDetailedResponseDto;
@@ -25,6 +27,8 @@ public interface InvitationService {
 
     List<InvitationResponseDto> getAllInvitations();
 
+    List<InvitationResponseDto> getInvitationsForActor(UUID actorId, com.InvitationSystem.InvitationSystem.entity.UserRole role);
+
     List<InvitationDetailedResponseDto> getInvitationsByStatus(InvitationStatus status);
 
     InvitationDetailedResponseDto markAsSent(UUID invitationId);
@@ -39,7 +43,23 @@ public interface InvitationService {
 
     InvitationScanResponseDto scanInvitationByToken(String token);
 
+    CheckInResponseDto verifyInvitation(CheckInRequestDto request);
+
+    java.util.List<com.InvitationSystem.InvitationSystem.Dto.checkInDto.CheckInHistoryDto> getCheckInHistory(UUID eventId);
+
+    java.util.List<com.InvitationSystem.InvitationSystem.Dto.checkInDto.CheckInHistoryDto> getCheckInHistory(
+            UUID eventId, UUID actorId, com.InvitationSystem.InvitationSystem.entity.UserRole actorRole);
+
     void deleteInvitation(UUID invitationId);
 
     List<InvitationDetailedResponseDto> getInvitationsByBulkUpload(UUID bulkUploadSessionId);
+
+    com.InvitationSystem.InvitationSystem.Dto.invitationsDto.BulkGenerationResultDto generateBulkInvitations(
+            com.InvitationSystem.InvitationSystem.Dto.invitationsDto.BulkGenerationRequestDto request);
+
+    InvitationResponseDto issueInheritedInvitation(UUID eventId, UUID guestId, com.InvitationSystem.InvitationSystem.entity.AdmissionType admissionType);
+
+    int regenerateInvitationsForTemplateChange(UUID eventId, UUID templateId, int templateVersion, com.InvitationSystem.InvitationSystem.entity.TemplateChangeScope scope);
+
+    InvitationDetailedResponseDto revokeInvitation(UUID invitationId, UUID actorId, com.InvitationSystem.InvitationSystem.entity.UserRole actorRole);
 }

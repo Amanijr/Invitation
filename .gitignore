@@ -1,4 +1,11 @@
 HELP.md
+.env
+infra/evolution/.env
+scripts/.template-cache/
+scripts/open-template-attribution.json
+uploads/
+.DS_Store
+frontend/node_modules/
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

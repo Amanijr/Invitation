@@ -8,5 +8,6 @@ public enum InvitationStatus {
     OPENED,
     USED,
     EXPIRED,
-    FAILED
+    FAILED,
+    REVOKED
 }

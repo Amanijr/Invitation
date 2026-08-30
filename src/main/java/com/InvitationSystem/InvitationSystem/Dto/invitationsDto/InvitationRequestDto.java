@@ -1,5 +1,6 @@
 package com.InvitationSystem.InvitationSystem.Dto.invitationsDto;
 
+import com.InvitationSystem.InvitationSystem.entity.AdmissionType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,7 @@ public class InvitationRequestDto {
     private String guestName;
     private String recipientPhone;
     private String recipientEmail;
+    private AdmissionType admissionType;
     private LocalDateTime expiryDate;
     private Boolean attachPdf;
 }

@@ -1,5 +1,6 @@
 package com.InvitationSystem.InvitationSystem.service;
 
+import com.InvitationSystem.InvitationSystem.Dto.UserDto.ProfileUpdateRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserResponseDto;
 
@@ -18,6 +19,8 @@ public interface UserService {
     List<UserResponseDto> getAllUsers();
 
     UserResponseDto updateUser(UUID userId, UserRequestDto request);
+
+    UserResponseDto updateProfile(String email, ProfileUpdateRequestDto request);
 
     void deleteUser(UUID userId);
 

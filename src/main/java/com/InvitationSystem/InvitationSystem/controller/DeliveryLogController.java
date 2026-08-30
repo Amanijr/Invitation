@@ -14,7 +14,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/delivery-logs")
-@CrossOrigin(origins = "*")
 @Tag(name = "Delivery Logs", description = "Delivery attempt and status logging endpoints")
 public class DeliveryLogController {
 

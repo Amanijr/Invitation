@@ -1,5 +1,6 @@
 package com.InvitationSystem.InvitationSystem.service.impl;
 
+import com.InvitationSystem.InvitationSystem.Dto.UserDto.ProfileUpdateRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserRequestDto;
 import com.InvitationSystem.InvitationSystem.Dto.UserDto.UserResponseDto;
 import com.InvitationSystem.InvitationSystem.entity.User;
@@ -77,6 +78,19 @@ class UserServiceImplTest {
     }
 
     @Test
+    void createUser_nullRole_defaultsToEventManager() {
+        requestDto.setRole(null);
+        when(userRepository.existsByEmail("john@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("secret")).thenReturn("encoded-secret");
+        when(userRepository.save(any(User.class))).thenReturn(user);
+
+        UserResponseDto response = userService.createUser(requestDto);
+
+        assertEquals("EVENT_MANAGER", response.getRole());
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
     void createUser_duplicateEmail_throws() {
         when(userRepository.existsByEmail("john@example.com")).thenReturn(true);
 
@@ -133,6 +147,63 @@ class UserServiceImplTest {
 
         assertEquals("Jane", response.getFirstName());
         assertEquals("ADMIN", response.getRole());
+    }
+
+    @Test
+    void updateProfile_success_keepsRole() {
+        ProfileUpdateRequestDto request = new ProfileUpdateRequestDto(
+                "Jane", "Smith", "john@example.com", null, null);
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponseDto response = userService.updateProfile("john@example.com", request);
+
+        assertEquals("Jane", response.getFirstName());
+        assertEquals("Smith", response.getLastName());
+        assertEquals("EVENT_MANAGER", response.getRole());
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void updateProfile_wrongPassword_throws() {
+        ProfileUpdateRequestDto request = new ProfileUpdateRequestDto(
+                "John", "Doe", "new@example.com", "wrong", null);
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong", "encoded-secret")).thenReturn(false);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.updateProfile("john@example.com", request));
+        assertEquals("Current password is incorrect.", ex.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void updateProfile_emailChange_requiresCurrentPassword() {
+        ProfileUpdateRequestDto request = new ProfileUpdateRequestDto(
+                "John", "Doe", "new@example.com", null, null);
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(user));
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.updateProfile("john@example.com", request));
+        assertEquals("Enter your current password to change email or password.", ex.getMessage());
+    }
+
+    @Test
+    void updateProfile_newPassword_encodesAndKeepsRole() {
+        ProfileUpdateRequestDto request = new ProfileUpdateRequestDto(
+                "John", "Doe", "john@example.com", "secret", "fresh1");
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret", "encoded-secret")).thenReturn(true);
+        when(passwordEncoder.encode("fresh1")).thenReturn("encoded-fresh");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponseDto response = userService.updateProfile("john@example.com", request);
+
+        assertEquals("EVENT_MANAGER", response.getRole());
+        verify(passwordEncoder).encode("fresh1");
     }
 
     @Test
