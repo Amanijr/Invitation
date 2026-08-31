@@ -229,6 +229,7 @@ public class WhatsAppChannelProvider implements ChannelProvider {
                     .build();
         }
 
+        log.info("WhatsApp Evolution send using instance {}", evolutionInstance);
         String messageText = composeWhatsAppText(request);
         byte[] cardPng = request.getCardImageBytes();
         boolean sendImage = cardPng != null && cardPng.length > 0;

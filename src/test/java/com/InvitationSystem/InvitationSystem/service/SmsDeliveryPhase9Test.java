@@ -399,7 +399,7 @@ class SmsDeliveryPhase9Test {
         ArgumentCaptor<HttpRequest> httpCaptor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(mockHttpClient).send(httpCaptor.capture(), any(HttpResponse.BodyHandler.class));
         HttpRequest sent = httpCaptor.getValue();
-        assertEquals("https://api.sms-gate.app/3rdparty/v1/messages", sent.uri().toString());
+        assertEquals("https://api.sms-gate.app/3rdparty/v1/messages?skipPhoneValidation=true", sent.uri().toString());
         assertTrue(sent.headers().firstValue("Authorization").orElse("").startsWith("Basic "));
         assertEquals("application/json", sent.headers().firstValue("Content-Type").orElse(""));
 

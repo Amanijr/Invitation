@@ -205,7 +205,8 @@ public class SmsChannelProvider implements ChannelProvider {
             String base = androidBaseUrl == null || androidBaseUrl.isBlank()
                     ? "https://api.sms-gate.app"
                     : androidBaseUrl.replaceAll("/+$", "");
-            String endpoint = base + "/3rdparty/v1/messages";
+            // sms-gate libphonenumber rejects some valid TZ mobiles (HTTP 400 invalid phone number).
+            String endpoint = base + "/3rdparty/v1/messages?skipPhoneValidation=true";
 
             StringBuilder json = new StringBuilder();
             json.append("{\"phoneNumbers\":[\"").append(escapeJson(normalizedPhone)).append("\"],");
@@ -243,7 +244,7 @@ public class SmsChannelProvider implements ChannelProvider {
                         .build();
             }
 
-            log.error("Android SMS Gateway error (HTTP {}): {}", statusCode, responseBody);
+            log.error("Android SMS Gateway error (HTTP {}) for {}: {}", statusCode, normalizedPhone, responseBody);
             return DeliveryResult.builder()
                     .success(false)
                     .status(DeliveryStatus.FAILED)
